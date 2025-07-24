@@ -1,0 +1,6 @@
+aws_region     = "ap-south-1"
+project_name   = "myDevopsProject"
+github_owner   = "-------------your name-----------"
+github_repo    = "Devops-Project"
+github_branch  = "main"
+github_token   = "---------------Your Token-----------------"

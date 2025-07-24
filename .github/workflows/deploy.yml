@@ -32,12 +32,12 @@ jobs:
         working_directory: ./Terraform
 
     # 5. Run Trivy on Dockerfile
-    - name: Run Trivy Scan on Dockerfile
+    - name: Run Trivy scan on filesystem
       uses: aquasecurity/trivy-action@master
       with:
         scan-type: 'fs'
         scan-ref: '.'
-        severity: 'CRITICAL,HIGH'
+
 
     # 6. Apply Sealed Secret to cluster
     - name: Apply Sealed Secret

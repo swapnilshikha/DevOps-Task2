@@ -33,6 +33,8 @@ jobs:
         scan-type: 'fs'
         scan-ref: '.'
 
+    - name: Apply Sealed Secret
+      run: kubectl apply -f Terraform/sealed-secret.yaml
 
     - name: Terraform Plan
       run: terraform -chdir=Terraform plan

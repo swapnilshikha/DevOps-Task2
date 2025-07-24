@@ -1,10 +1,73 @@
 provider "aws" {
   region = var.aws_region
 }
-resource "aws_s3_bucket" "artifact_bucket" {
-  bucket = "${lower(var.project_name)}-artifacts"
+
+# Secure Logging Bucket (must exist before enabling logging in artifact bucket)
+resource "aws_s3_bucket" "log_bucket" {
+  bucket        = "${lower(var.project_name)}-logs"
   force_destroy = true
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  lifecycle_rule {
+    id      = "expire-logs"
+    enabled = true
+
+    expiration {
+      days = 90
+    }
+  }
+
+  tags = {
+    Name = "${lower(var.project_name)}-logs"
+  }
 }
+
+resource "aws_s3_bucket" "artifact_bucket" {
+  bucket        = "${lower(var.project_name)}-artifacts"
+  force_destroy = true
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  logging {
+    target_bucket = aws_s3_bucket.log_bucket.id
+    target_prefix = "${lower(var.project_name)}/"
+  }
+
+  tags = {
+    Name = "${lower(var.project_name)}-artifacts"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_iam_role" "codepipeline_role" {
   name = "${var.project_name}-pipeline-role"
 
@@ -19,6 +82,7 @@ resource "aws_iam_role" "codepipeline_role" {
     }]
   })
 }
+
 resource "aws_iam_role" "codebuild_role" {
   name = "${var.project_name}-codebuild-role"
 
@@ -33,6 +97,7 @@ resource "aws_iam_role" "codebuild_role" {
     }]
   })
 }
+
 resource "aws_iam_role" "codedeploy_role" {
   name = "${var.project_name}-codedeploy-role"
 
@@ -47,6 +112,7 @@ resource "aws_iam_role" "codedeploy_role" {
     }]
   })
 }
+
 resource "aws_codebuild_project" "build_project" {
   name         = "${var.project_name}-build"
   service_role = aws_iam_role.codebuild_role.arn
@@ -56,10 +122,10 @@ resource "aws_codebuild_project" "build_project" {
   }
 
   environment {
-    compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/standard:5.0"
-    type                        = "LINUX_CONTAINER"
-    privileged_mode             = true
+    compute_type    = "BUILD_GENERAL1_SMALL"
+    image           = "aws/codebuild/standard:5.0"
+    type            = "LINUX_CONTAINER"
+    privileged_mode = true
   }
 
   source {
@@ -67,8 +133,9 @@ resource "aws_codebuild_project" "build_project" {
     buildspec = "buildspec.yml"
   }
 }
+
 resource "aws_codedeploy_app" "my_app" {
-  name = "${var.project_name}-app"
+  name             = "${var.project_name}-app"
   compute_platform = "Server"
 }
 
@@ -95,6 +162,7 @@ resource "aws_codedeploy_deployment_group" "my_group" {
     events  = ["DEPLOYMENT_FAILURE"]
   }
 }
+
 resource "aws_codepipeline" "pipeline" {
   name     = "${var.project_name}-pipeline"
   role_arn = aws_iam_role.codepipeline_role.arn
@@ -116,12 +184,12 @@ resource "aws_codepipeline" "pipeline" {
       output_artifacts = ["source_output"]
 
       configuration = {
-      ConnectionArn    = "arn:aws:codeconnections:ap-south-1:460351657409:connection/2417f2f3-f71a-4fef-b011-70eff8410461"
-      FullRepositoryId = "swapnilshikha/Devops-Project"
-      BranchName       = "main"
-    }
+        ConnectionArn    = "arn:aws:codeconnections:ap-south-1:460351657409:connection/2417f2f3-f71a-4fef-b011-70eff8410461"
+        FullRepositoryId = "swapnilshikha/Devops-Project"
+        BranchName       = "main"
+      }
 
-    run_order = 1
+      run_order = 1
     }
   }
 
@@ -147,11 +215,11 @@ resource "aws_codepipeline" "pipeline" {
     name = "Deploy"
 
     action {
-      name            = "DeployAction"
-      category        = "Deploy"
-      owner           = "AWS"
-      provider        = "CodeDeploy"
-      input_artifacts = ["build_output"]
+      name             = "DeployAction"
+      category         = "Deploy"
+      owner            = "AWS"
+      provider         = "CodeDeploy"
+      input_artifacts  = ["build_output"]
       version          = "1"
 
       configuration = {

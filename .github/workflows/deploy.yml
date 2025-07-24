@@ -1,0 +1,38 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  devsecops:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Run tfsec (Terraform Security Scanner)
+        uses: aquasecurity/tfsec-action@v1.0.0
+
+      - name: Run Trivy (Container Image Scan)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+
+      - name: Generate Sealed Secret
+        run: |
+          kubeseal --format=yaml < secret.yaml > sealed-secret.yaml

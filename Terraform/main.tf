@@ -4,7 +4,8 @@ provider "aws" {
 
 # ---------------- KMS Key for S3 Encryption ----------------
 resource "aws_kms_key" "s3_key" {
-  description = "KMS key for S3 bucket encryption"
+  description         = "KMS key for S3 bucket encryption"
+  enable_key_rotation = true
 }
 
 # ---------------- Artifact S3 Bucket ----------------
@@ -23,6 +24,11 @@ resource "aws_s3_bucket" "artifact_bucket" {
 
   versioning {
     enabled = true
+  }
+
+  logging {
+    target_bucket = aws_s3_bucket.log_bucket.id
+    target_prefix = "artifacts-log/"
   }
 }
 
@@ -51,11 +57,6 @@ resource "aws_s3_bucket" "log_bucket" {
 
   versioning {
     enabled = true
-  }
-
-  logging {
-    target_bucket = aws_s3_bucket.artifact_bucket.id
-    target_prefix = "log/"
   }
 }
 
@@ -138,8 +139,8 @@ resource "aws_codebuild_project" "build_project" {
 
 # ---------------- CodeDeploy ----------------
 resource "aws_codedeploy_app" "my_app" {
-  name              = "${var.project_name}-app"
-  compute_platform  = "Server"
+  name             = "${var.project_name}-app"
+  compute_platform = "Server"
 }
 
 resource "aws_codedeploy_deployment_group" "my_group" {
@@ -174,6 +175,7 @@ resource "aws_codepipeline" "pipeline" {
   artifact_store {
     location = aws_s3_bucket.artifact_bucket.bucket
     type     = "S3"
+
     encryption_key {
       id   = aws_kms_key.s3_key.arn
       type = "KMS"

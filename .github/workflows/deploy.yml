@@ -27,6 +27,12 @@ jobs:
       with:
         working_directory: ./Terraform
 
+    - name: Run Trivy Scan on Dockerfile
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+
 
     - name: Terraform Plan
       run: terraform -chdir=Terraform plan

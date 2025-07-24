@@ -1,0 +1,33 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURCVENDQWUyZ0F3SUJBZ0lJWlNQNDliakNjSVl3RFFZSktvWklodmNOQVFFTEJRQXdGVEVUTUJFR0ExVUUKQXhNS2EzVmlaWEp1WlhSbGN6QWVGdzB5TlRBM01qUXhOVEF6TUROYUZ3MHpOVEEzTWpJeE5UQTRNRE5hTUJVeApFekFSQmdOVkJBTVRDbXQxWW1WeWJtVjBaWE13Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUUN0S0tmeERPN2NuUjRvWHJicTNtc0J4VkY5OXJISm8wSGN6MGlvNVE1UWVBYmxoSE1GemM2MStFaVEKMG5rV0dJK2hIclc0aytvNmZQM3Z5VU9MbDFmTEc4TitqTFZRcHp6R3A2NXdsdEw0KzBIL01GeUlMSVl3dmc1NgpaTTQycjhzelZpZHdvYlRwM284Vm5udmdndUFOc2E3dDhCcjdYM3dlQ1JkdXFmeHV6VkRlTHBHOWhHVm9IckpaCmhKOGhJWkttbWRjclhvb1RxM2x4YUdlSjlpb0hNbGU0MmlCL1I4dmdXK3YrVHNpQUVTeUNpcE8yRTdhY2trcGkKR3hySVF4a0FQN2xHSEl6Z2xVV2VXdkxrQ0toSWJGdk02REVNSUJnWXYxLzE5cGV3MVJjb0JxR1FLb1FvWTFwTwo2d0xoUkxsVUpVNjRRTjkvbU9Ba3h6SENVSmRUQWdNQkFBR2pXVEJYTUE0R0ExVWREd0VCL3dRRUF3SUNwREFQCkJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJSTkt6RDRIbFZ3ZkhUbzRFdVVLbCtFdmdMczNqQVYKQmdOVkhSRUVEakFNZ2dwcmRXSmxjbTVsZEdWek1BMEdDU3FHU0liM0RRRUJDd1VBQTRJQkFRQ1gzVHNvc3ErSAoyTC94aFlsYVM3bWhiWGRicFpBckVGRmMvc3ZxK3BBazkvNDg0NTdNclB4NVhjNnp1bWhHLzZCOUFkbzk0WnRsCkhMSWRaTCtCa1ZUck8wbmZWR3Vza0IyZmxLTXJvV3g2cjZZaGx1TDd1VXAwUXBYOFo0dXZiQVRDTVpRbVBnNGsKNWwzeHZ0NFA5WnhuL3NPQk1qT3hVRUdQRXNlVys1K1k2TEVmYTFRcHZMV1RNa2VuS2EwQVVML1hFZndsMDZYTgp1UXVaSkE5UzVsR0FBQlJSUW1kdHAzb09LTXRwNmMyN015WE9mbEJMa1QzQXI4SDR4bGxGQkN5OUU3T3hnTTROCnNKZlZDSlZjQ0wyMFRVTHNrMzVKK0NhYWxKb0NudU9CSzZycGtwQ1MvZGZjd283c0VaMVdjQ2hVb2dMOTJLVUYKc2syOFJXdWxoWWZ0Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://5EAAEEA0F8E569C7985328A8F6774111.gr7.ap-south-1.eks.amazonaws.com
+  name: devsecops-cluster.ap-south-1.eksctl.io
+contexts:
+- context:
+    cluster: devsecops-cluster.ap-south-1.eksctl.io
+    user: SIT-User@devsecops-cluster.ap-south-1.eksctl.io
+  name: SIT-User@devsecops-cluster.ap-south-1.eksctl.io
+current-context: SIT-User@devsecops-cluster.ap-south-1.eksctl.io
+kind: Config
+preferences: {}
+users:
+- name: SIT-User@devsecops-cluster.ap-south-1.eksctl.io
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - eks
+      - get-token
+      - --output
+      - json
+      - --cluster-name
+      - devsecops-cluster
+      - --region
+      - ap-south-1
+      command: aws
+      env:
+      - name: AWS_STS_REGIONAL_ENDPOINTS
+        value: regional
+      provideClusterInfo: false

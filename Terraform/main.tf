@@ -10,6 +10,10 @@ resource "aws_kms_key" "s3_key" {
 
 # ---------------- S3 Buckets ----------------
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 resource "aws_s3_bucket" "log_bucket" {
   bucket        = "${lower(var.project_name)}-logs-${random_id.suffix.hex}"
   force_destroy = true
@@ -23,11 +27,28 @@ resource "aws_s3_bucket_versioning" "log_bucket_versioning" {
 }
 
 resource "aws_s3_bucket_public_access_block" "log_bucket_block" {
-  bucket = aws_s3_bucket.log_bucket.id
+  bucket                  = aws_s3_bucket.log_bucket.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket_encryption" {
+  bucket = aws_s3_bucket.log_bucket.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_key.arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_logging" "log_bucket_logging" {
+  bucket        = aws_s3_bucket.log_bucket.id
+  target_bucket = aws_s3_bucket.artifact_bucket.id
+  target_prefix = "log/"
 }
 
 resource "aws_s3_bucket" "artifact_bucket" {
@@ -57,15 +78,11 @@ resource "aws_s3_bucket_versioning" "artifact_bucket_versioning" {
 }
 
 resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
-  bucket = aws_s3_bucket.artifact_bucket.id
+  bucket                  = aws_s3_bucket.artifact_bucket.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
-}
-
-resource "random_id" "suffix" {
-  byte_length = 4
 }
 
 # ---------------- IAM Roles ----------------
@@ -75,9 +92,9 @@ resource "aws_iam_role" "codepipeline_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "codepipeline.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -87,9 +104,9 @@ resource "aws_iam_role" "codebuild_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "codebuild.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -99,9 +116,9 @@ resource "aws_iam_role" "codedeploy_role" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Effect = "Allow",
+      Effect    = "Allow",
       Principal = { Service = "codedeploy.amazonaws.com" },
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }

@@ -2,7 +2,7 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ---------------- KMS Key for S3 Encryption ----------------
+# ---------------- KMS Key ----------------
 resource "aws_kms_key" "s3_key" {
   description         = "KMS key for S3 bucket encryption"
   enable_key_rotation = true
@@ -10,9 +10,28 @@ resource "aws_kms_key" "s3_key" {
 
 # ---------------- S3 Buckets ----------------
 
-## Artifact Bucket
+resource "aws_s3_bucket" "log_bucket" {
+  bucket        = "${lower(var.project_name)}-logs-${random_id.suffix.hex}"
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_versioning" "log_bucket_versioning" {
+  bucket = aws_s3_bucket.log_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "log_bucket_block" {
+  bucket = aws_s3_bucket.log_bucket.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
 resource "aws_s3_bucket" "artifact_bucket" {
-  bucket        = "${lower(var.project_name)}-artifacts"
+  bucket        = "${lower(var.project_name)}-artifacts-${random_id.suffix.hex}"
   force_destroy = true
 
   server_side_encryption_configuration {
@@ -22,10 +41,6 @@ resource "aws_s3_bucket" "artifact_bucket" {
         sse_algorithm     = "aws:kms"
       }
     }
-  }
-
-  versioning {
-    enabled = true
   }
 
   logging {
@@ -34,103 +49,67 @@ resource "aws_s3_bucket" "artifact_bucket" {
   }
 }
 
-## Public Access Block for Artifact Bucket
+resource "aws_s3_bucket_versioning" "artifact_bucket_versioning" {
+  bucket = aws_s3_bucket.artifact_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
   bucket = aws_s3_bucket.artifact_bucket.id
-
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
-## Log Bucket (updated)
-resource "aws_s3_bucket" "log_bucket" {
-  bucket        = "mydevopsproject-logs"
-  force_destroy = true
-
-  logging {
-    target_bucket = "mydevopsproject-logs"
-    target_prefix = "log/"
-  }
-
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        kms_master_key_id = aws_kms_key.s3_key.arn
-        sse_algorithm     = "aws:kms"
-      }
-    }
-  }
-
-  versioning {
-    enabled = true
-  }
-}
-
-## Public Access Block for Log Bucket
-resource "aws_s3_bucket_public_access_block" "log_bucket_block" {
-  bucket = aws_s3_bucket.log_bucket.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
+resource "random_id" "suffix" {
+  byte_length = 4
 }
 
 # ---------------- IAM Roles ----------------
 
-## CodePipeline Role
 resource "aws_iam_role" "codepipeline_role" {
-  name = "${var.project_name}-pipeline-role"
-
+  name = "${var.project_name}-pipeline-role-${random_id.suffix.hex}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Principal = {
-        Service = "codepipeline.amazonaws.com"
-      },
+      Principal = { Service = "codepipeline.amazonaws.com" },
       Action = "sts:AssumeRole"
     }]
   })
 }
 
-## CodeBuild Role
 resource "aws_iam_role" "codebuild_role" {
-  name = "${var.project_name}-codebuild-role"
-
+  name = "${var.project_name}-codebuild-role-${random_id.suffix.hex}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Principal = {
-        Service = "codebuild.amazonaws.com"
-      },
+      Principal = { Service = "codebuild.amazonaws.com" },
       Action = "sts:AssumeRole"
     }]
   })
 }
 
-## CodeDeploy Role
 resource "aws_iam_role" "codedeploy_role" {
-  name = "${var.project_name}-codedeploy-role"
-
+  name = "${var.project_name}-codedeploy-role-${random_id.suffix.hex}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
       Effect = "Allow",
-      Principal = {
-        Service = "codedeploy.amazonaws.com"
-      },
+      Principal = { Service = "codedeploy.amazonaws.com" },
       Action = "sts:AssumeRole"
     }]
   })
 }
 
-# ---------------- CodeBuild Project ----------------
+# ---------------- CodeBuild ----------------
+
 resource "aws_codebuild_project" "build_project" {
-  name         = "${var.project_name}-build"
+  name         = "${var.project_name}-build-${random_id.suffix.hex}"
   service_role = aws_iam_role.codebuild_role.arn
 
   artifacts {
@@ -151,14 +130,15 @@ resource "aws_codebuild_project" "build_project" {
 }
 
 # ---------------- CodeDeploy ----------------
+
 resource "aws_codedeploy_app" "my_app" {
-  name             = "${var.project_name}-app"
+  name             = "${var.project_name}-app-${random_id.suffix.hex}"
   compute_platform = "Server"
 }
 
 resource "aws_codedeploy_deployment_group" "my_group" {
   app_name              = aws_codedeploy_app.my_app.name
-  deployment_group_name = "${var.project_name}-dg"
+  deployment_group_name = "${var.project_name}-dg-${random_id.suffix.hex}"
   service_role_arn      = aws_iam_role.codedeploy_role.arn
 
   deployment_style {
@@ -181,8 +161,9 @@ resource "aws_codedeploy_deployment_group" "my_group" {
 }
 
 # ---------------- CodePipeline ----------------
+
 resource "aws_codepipeline" "pipeline" {
-  name     = "${var.project_name}-pipeline"
+  name     = "${var.project_name}-pipeline-${random_id.suffix.hex}"
   role_arn = aws_iam_role.codepipeline_role.arn
 
   artifact_store {
@@ -207,8 +188,8 @@ resource "aws_codepipeline" "pipeline" {
       output_artifacts = ["source_output"]
 
       configuration = {
-        ConnectionArn    = "arn:aws:codeconnections:ap-south-1:460351657409:connection/2417f2f3-f71a-4fef-b011-70eff8410461"
-        FullRepositoryId = "swapnilshikha/Devops-Project"
+        ConnectionArn    = var.connection_arn
+        FullRepositoryId = var.repo_fullname
         BranchName       = "main"
       }
 

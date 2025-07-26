@@ -44,10 +44,15 @@ resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
   restrict_public_buckets = true
 }
 
-## Log Bucket
+## Log Bucket (updated)
 resource "aws_s3_bucket" "log_bucket" {
-  bucket        = "${lower(var.project_name)}-logs"
+  bucket        = "mydevopsproject-logs"
   force_destroy = true
+
+  logging {
+    target_bucket = "mydevopsproject-logs"
+    target_prefix = "log/"
+  }
 
   server_side_encryption_configuration {
     rule {

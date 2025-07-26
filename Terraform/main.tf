@@ -8,7 +8,9 @@ resource "aws_kms_key" "s3_key" {
   enable_key_rotation = true
 }
 
-# ---------------- Artifact S3 Bucket ----------------
+# ---------------- S3 Buckets ----------------
+
+## Artifact Bucket
 resource "aws_s3_bucket" "artifact_bucket" {
   bucket        = "${lower(var.project_name)}-artifacts"
   force_destroy = true
@@ -32,6 +34,7 @@ resource "aws_s3_bucket" "artifact_bucket" {
   }
 }
 
+## Public Access Block for Artifact Bucket
 resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
   bucket = aws_s3_bucket.artifact_bucket.id
 
@@ -41,7 +44,7 @@ resource "aws_s3_bucket_public_access_block" "artifact_bucket_block" {
   restrict_public_buckets = true
 }
 
-# ---------------- Log S3 Bucket ----------------
+## Log Bucket
 resource "aws_s3_bucket" "log_bucket" {
   bucket        = "${lower(var.project_name)}-logs"
   force_destroy = true
@@ -60,6 +63,7 @@ resource "aws_s3_bucket" "log_bucket" {
   }
 }
 
+## Public Access Block for Log Bucket
 resource "aws_s3_bucket_public_access_block" "log_bucket_block" {
   bucket = aws_s3_bucket.log_bucket.id
 
@@ -70,6 +74,8 @@ resource "aws_s3_bucket_public_access_block" "log_bucket_block" {
 }
 
 # ---------------- IAM Roles ----------------
+
+## CodePipeline Role
 resource "aws_iam_role" "codepipeline_role" {
   name = "${var.project_name}-pipeline-role"
 
@@ -85,6 +91,7 @@ resource "aws_iam_role" "codepipeline_role" {
   })
 }
 
+## CodeBuild Role
 resource "aws_iam_role" "codebuild_role" {
   name = "${var.project_name}-codebuild-role"
 
@@ -100,6 +107,7 @@ resource "aws_iam_role" "codebuild_role" {
   })
 }
 
+## CodeDeploy Role
 resource "aws_iam_role" "codedeploy_role" {
   name = "${var.project_name}-codedeploy-role"
 
